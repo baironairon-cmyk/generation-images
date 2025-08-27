@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  telegramId String   @unique
+  username   String?
+  firstName  String?
+  lastName   String?
+  createdAt  DateTime @default(now())
+
+  photos          AttachedPhoto[]
+  processedPhotos ProcessedPhoto[]
+}
+
+model AttachedPhoto {
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  telegramFileId String
+  filePath       String
+  mimeType       String?
+  width          Int?
+  height         Int?
+  createdAt      DateTime @default(now())
+
+  processedPhotos ProcessedPhoto[]
+
+  @@index([userId])
+}
+
+model ProcessedPhoto {
+  id              String        @id @default(cuid())
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  source          AttachedPhoto @relation(fields: [attachedPhotoId], references: [id], onDelete: Cascade)
+  attachedPhotoId String
+  filePath        String
+  mimeType        String?
+  createdAt       DateTime      @default(now())
+
+  generatedImages GeneratedImage[]
+
+  @@index([userId])
+  @@index([attachedPhotoId])
+}
+
+model GeneratedImage {
+  id               String         @id @default(cuid())
+  processedPhoto   ProcessedPhoto @relation(fields: [processedPhotoId], references: [id], onDelete: Cascade)
+  processedPhotoId String
+  provider         String
+  templateLabel    String
+  promptText       String
+  metaJson         String? // JSON string with colors, typography, etc.
+  filePath         String
+  createdAt        DateTime       @default(now())
+
+  @@index([processedPhotoId])
+}
